@@ -9,7 +9,7 @@
 
 import express, { Request, Response, NextFunction } from 'express';
 import { createServer } from 'http';
-import { McpServer, Resource } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { isInitializeRequest } from '@modelcontextprotocol/sdk/types.js';
 import { v4 as uuidv4 } from 'uuid';
@@ -64,8 +64,7 @@ export class SemanticScholarMCPServer {
     // Initialize MCP server
     this.mcpServer = new McpServer({
       name: 'semantic-scholar-mcp',
-      version: '1.0.0',
-      logger
+      version: '1.0.0'
     });
 
     // Setup middleware
@@ -150,8 +149,7 @@ export class SemanticScholarMCPServer {
     if (!transport && isInitializeRequest(req.body)) {
       // Create new transport for new session
       transport = new StreamableHTTPServerTransport({
-        sessionIdGenerator: () => sessionId!,
-        logger
+        sessionIdGenerator: () => sessionId!
       });
       
       // Handle session close
@@ -218,7 +216,7 @@ export class SemanticScholarMCPServer {
    * Start the server
    */
   async start(): Promise<void> {
-    const port = process.env.PORT || 3000;
+    const port = Number(process.env.PORT) || 3000;
     const host = process.env.HOST || '0.0.0.0';
 
     return new Promise((resolve) => {

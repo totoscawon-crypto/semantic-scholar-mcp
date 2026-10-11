@@ -7,6 +7,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
 import pino, { Logger } from 'pino';
+import { z } from 'zod';
 
 import { SemanticScholarService } from '../services/semanticScholar.js';
 import { CacheService } from '../services/cache.js';
@@ -52,34 +53,11 @@ export function registerTools(
       
       **Returns:** List of papers with metadata (title, authors, citations, year)`,
       inputSchema: {
-        type: 'object',
-        properties: {
-          query: {
-            type: 'string',
-            description: 'Plain text search query. Use specific terms for better results.'
-          },
-          year: {
-            type: 'string',
-            description: 'Publication year or range (e.g., "2023", "2020-2024")'
-          },
-          fieldsOfStudy: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Fields of study to filter (e.g., ["Computer Science", "Physics"])'
-          },
-          openAccessPdf: {
-            type: 'boolean',
-            description: 'Only return papers with freely available PDFs'
-          },
-          limit: {
-            type: 'integer',
-            minimum: 1,
-            maximum: 100,
-            default: 10,
-            description: 'Maximum number of results to return'
-          }
-        },
-        required: ['query']
+        query: z.string().describe('Plain text search query. Use specific terms for better results.'),
+        year: z.string().optional().describe('Publication year or range (e.g., "2023", "2020-2024")'),
+        fieldsOfStudy: z.array(z.string()).optional().describe('Fields of study to filter (e.g., ["Computer Science", "Physics"])'),
+        openAccessPdf: z.boolean().optional().describe('Only return papers with freely available PDFs'),
+        limit: z.number().int().min(1).max(100).default(10).describe('Maximum number of results to return')
       }
     },
     async (args: Record<string, unknown>) => {
@@ -92,7 +70,7 @@ export function registerTools(
       };
 
       // Check cache first
-      const cached = cache.get<SearchResponse<Paper>>('search', params);
+      const cached = cache.get<SearchResponse<Paper>>('search', { ...params });
       if (cached) {
         return {
           content: [
@@ -125,9 +103,9 @@ export function registerTools(
 
       try {
         const results = await semanticScholar.searchPapers(params);
-        
+
         // Cache the results
-        cache.set('search', params, results);
+        cache.set('search', { ...params }, results);
         
         return {
           content: [
@@ -175,20 +153,8 @@ export function registerTools(
       
       **Returns:** Full paper metadata including abstract, authors, citations`,
       inputSchema: {
-        type: 'object',
-        properties: {
-          paperId: {
-            type: 'string',
-            description: 'Paper ID (Semantic Scholar SHA, DOI, arXiv ID, or URL)'
-          },
-          fields: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Additional fields to include (abstract, journal, embedding, etc.)',
-            default: ['title', 'authors', 'year', 'citationCount']
-          }
-        },
-        required: ['paperId']
+        paperId: z.string().describe('Paper ID (Semantic Scholar SHA, DOI, arXiv ID, or URL)'),
+        fields: z.array(z.string()).optional().describe('Additional fields to include (abstract, journal, embedding, etc.)')
       }
     },
     async (args: Record<string, unknown>) => {
@@ -198,7 +164,7 @@ export function registerTools(
       };
 
       // Check cache
-      const cached = cache.get<Paper>('paper', params);
+      const cached = cache.get<Paper>('paper', { ...params });
       if (cached) {
         return {
           content: [
@@ -229,7 +195,7 @@ export function registerTools(
 
       try {
         const paper = await semanticScholar.getPaper(params);
-        cache.set('paper', params, paper);
+        cache.set('paper', { ...params }, paper);
         
         return {
           content: [
@@ -266,21 +232,8 @@ export function registerTools(
       
       **Returns:** Author names, affiliations, citation counts, and h-index`,
       inputSchema: {
-        type: 'object',
-        properties: {
-          paperId: {
-            type: 'string',
-            description: 'Paper ID to get authors for'
-          },
-          limit: {
-            type: 'integer',
-            minimum: 1,
-            maximum: 1000,
-            default: 100,
-            description: 'Maximum number of authors to return'
-          }
-        },
-        required: ['paperId']
+        paperId: z.string().describe('Paper ID to get authors for'),
+        limit: z.number().int().min(1).max(1000).default(100).describe('Maximum number of authors to return')
       }
     },
     async (args: Record<string, unknown>) => {
@@ -341,21 +294,8 @@ export function registerTools(
       
       Useful for finding follow-up work and understanding a paper's influence.`,
       inputSchema: {
-        type: 'object',
-        properties: {
-          paperId: {
-            type: 'string',
-            description: 'Paper ID to get citations for'
-          },
-          limit: {
-            type: 'integer',
-            minimum: 1,
-            maximum: 1000,
-            default: 100,
-            description: 'Maximum number of citations to return'
-          }
-        },
-        required: ['paperId']
+        paperId: z.string().describe('Paper ID to get citations for'),
+        limit: z.number().int().min(1).max(1000).default(100).describe('Maximum number of citations to return')
       }
     },
     async (args: Record<string, unknown>) => {
@@ -416,21 +356,8 @@ export function registerTools(
       
       Useful for finding related work and understanding a paper's foundations.`,
       inputSchema: {
-        type: 'object',
-        properties: {
-          paperId: {
-            type: 'string',
-            description: 'Paper ID to get references for'
-          },
-          limit: {
-            type: 'integer',
-            minimum: 1,
-            maximum: 1000,
-            default: 100,
-            description: 'Maximum number of references to return'
-          }
-        },
-        required: ['paperId']
+        paperId: z.string().describe('Paper ID to get references for'),
+        limit: z.number().int().min(1).max(1000).default(100).describe('Maximum number of references to return')
       }
     },
     async (args: Record<string, unknown>) => {
@@ -496,21 +423,8 @@ export function registerTools(
       
       **Note:** Maximum 100 papers per batch.`,
       inputSchema: {
-        type: 'object',
-        properties: {
-          paperIds: {
-            type: 'array',
-            items: { type: 'string' },
-            maxItems: 100,
-            description: 'List of paper IDs to fetch'
-          },
-          fields: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Fields to include for each paper'
-          }
-        },
-        required: ['paperIds']
+        paperIds: z.array(z.string()).max(100).describe('List of paper IDs to fetch'),
+        fields: z.array(z.string()).optional().describe('Fields to include for each paper')
       }
     },
     async (args: Record<string, unknown>) => {
@@ -572,10 +486,7 @@ export function registerTools(
     {
       title: 'Get Cache Statistics',
       description: 'Get statistics about the API cache (hits, misses, size)',
-      inputSchema: {
-        type: 'object',
-        properties: {}
-      }
+      inputSchema: {}
     },
     async () => {
       const stats = cache.getStats();
@@ -607,10 +518,7 @@ export function registerTools(
     {
       title: 'Clear Cache',
       description: 'Clear all cached API responses',
-      inputSchema: {
-        type: 'object',
-        properties: {}
-      }
+      inputSchema: {}
     },
     async () => {
       cache.clear();

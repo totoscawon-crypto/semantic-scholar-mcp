@@ -312,8 +312,8 @@ export class SemanticScholarService {
           }
         }
       } catch (error) {
-        this.logger.warn({ 
-          batch: { start: i, end: i + batch },
+        this.logger.warn({
+          batch: { start: i, end: i + batch.length },
           error: String(error) 
         }, 'Batch fetch partially failed');
         

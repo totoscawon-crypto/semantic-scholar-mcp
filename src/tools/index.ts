@@ -237,8 +237,8 @@ export function registerTools(
               type: 'text',
               text: JSON.stringify(paper, null, 2)
             }
-          ];
-        }
+          ]
+        };
       } catch (error) {
         return {
           content: [
